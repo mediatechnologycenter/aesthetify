@@ -1,0 +1,68 @@
+# *  SPDX-License-Identifier: Apache-2.0
+# *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.frontend.serviceName }}
+  labels:
+    app: {{ .Values.frontend.serviceName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.frontend.serviceName }}
+  template:
+    metadata:
+        labels:
+          app: {{ .Values.frontend.serviceName }}
+    spec:
+      tolerations:
+        - key: cpu-deployment
+          operator: Equal
+          value: enabled
+          effect: NoSchedule
+      containers:
+        - name: {{ .Values.frontend.serviceName }}
+          image: {{ .Values.frontend.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.frontend.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: "/"
+              port: {{ .Values.frontend.port }}
+            periodSeconds: 60
+          env:
+            # Nginx Configs
+            - name: BACKEND_URL
+              value: {{ printf "http://%v:%v" .Values.backend.serviceName .Values.backend.port | quote }}
+            # This is a replacement for the usual FLUTTER_ENVIRONMENT
+            - name: REACT_APP_ENVIRONMENT # This is probably not used anywhere
+              value: {{ .Values.deployment.flutterEnvironment | quote }}
+            - name: "REACT_APP_DEVELOPMENT"
+              value: "true"
+            - name: "REACT_APP_THUMBNAIL_ACTIVE"
+              value: "true"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "100Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.frontend.serviceName }}
+spec:
+  selector:
+    app: {{ .Values.frontend.serviceName }}
+  ports:
+    - port: {{ .Values.frontend.port }}
+      protocol: TCP
+      targetPort: {{ .Values.frontend.port }}

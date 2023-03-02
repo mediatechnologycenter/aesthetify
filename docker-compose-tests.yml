@@ -1,0 +1,29 @@
+# *  SPDX-License-Identifier: Apache-2.0
+# *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+version: "3.9"
+services:
+  backend:
+    image: aesthetics-backend-v2-debug
+    container_name: aesthetics-backend-v2-test
+    environment:
+      - MOCK_BACKEND=True
+      - AUTH_ENABLED=False
+    command: ["python", "-m", "unittest", "discover", "--start-directory", "api_backend/tests" ]
+
+  aesthetics-model:
+    image: aesthetics-model-backend-v2-debug
+    container_name: aesthetics-model-backend-v2-test
+    environment:
+      - MOCK_BACKEND=False
+    command: ["python", "-m", "unittest", "discover", "--start-directory", "aesthetics_model/tests" ]
+
+  emotion-model:
+    image: emotion-model-backend-v2-debug
+    container_name: emotion-model-backend-v2-test
+    command: ["python", "-m", "unittest", "discover", "--start-directory", "emotion_model/tests" ]
+  
+  shot-scale-model:
+    image: shot-scale-model-backend-v2-debug
+    container_name: shot-scale-model-backend-v2-test
+    command: ["python", "-m", "unittest", "discover", "--start-directory", "shot_scale_model/tests" ]

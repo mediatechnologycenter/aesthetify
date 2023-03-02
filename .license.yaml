@@ -1,0 +1,16 @@
+header: # <1>
+  license:
+    spdx-id: Apache-2.0 # <2>
+    copyright-owner: ETH Zurich Media Technology Center # <3>
+    content: | # <5>
+      *  SPDX-License-Identifier: Apache-2.0
+      *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+  paths: # <7>
+    - '**'
+
+  paths-ignore: # <8>
+    - '**/*.md'
+    - 'LICENSE'
+    - 'AUTHORS'
+    - '**/.*'

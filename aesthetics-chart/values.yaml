@@ -1,0 +1,58 @@
+# *  SPDX-License-Identifier: Apache-2.0
+# *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+# Default values for Aesthetics Chart.
+
+deployment:
+  dashboardGatewayName: mtc-dashboard-gateway
+  hostname: "aesthetics.mediatechnologycenter.ch"
+  flutterEnvironment: prod
+  gpu:
+    supported: true
+    enabled: false
+  replicaCount: 1
+  volumeResourcePolicy: "keep"  # OPTIONS: keep/delete - Do not remove PVCs when uninstalling helm charts so the downloaded files can be reused for the next installation
+
+
+auth:
+  enabled: true  # This currently only applies to FE & BE. If models should also be authenticated, change their respective ENV vars
+  firebaseAuthServiceAccountUrl: <FIREBASE-AUTH-KEY.json>  # TODO: To be replaced for PROD environment
+  requiredAuthRoles: "aesthetics" # One of these Firebase roles is required to access the service
+
+image:
+  pullPolicy: Always # Always/IfNotPresent
+
+frontend:
+  serviceName: "aesthetics-frontend"
+  image: europe-west6-docker.pkg.dev/mtc-production/mtc-ethz/aesthetics-frontend
+  port: 80
+
+backend:
+  serviceName: "aesthetics-backend"
+  image: europe-west6-docker.pkg.dev/mtc-production/mtc-ethz/aesthetics-backend-v2
+  port: 5000
+
+aestheticsModel:
+  serviceName: "aesthetics-model"
+  image: europe-west6-docker.pkg.dev/mtc-production/mtc-ethz/aesthetics-model-backend-v2
+  port: 5000
+  gpu:
+    supported: true
+    enabled: true
+
+emotionModel:
+  serviceName: "emotion-model"
+  image: europe-west6-docker.pkg.dev/mtc-production/mtc-ethz/emotion-model-backend-v2
+  port: 5000
+  gpu:
+    supported: true
+    enabled: false
+
+shotScaleModel:
+  serviceName: "shot-scale-model"
+  image: europe-west6-docker.pkg.dev/mtc-production/mtc-ethz/shot-scale-model-backend-v2
+  port: 5000
+  gpu:
+    supported: true
+    enabled: false
+

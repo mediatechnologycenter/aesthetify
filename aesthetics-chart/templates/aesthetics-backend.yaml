@@ -1,0 +1,104 @@
+# *  SPDX-License-Identifier: Apache-2.0
+# *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.serviceName }}
+  labels:
+    app: {{ .Values.backend.serviceName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.backend.serviceName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.backend.serviceName }}
+    spec:
+      # affinity: # All other services have a pod affinity to this one
+      tolerations:
+        - key: cpu-deployment
+          operator: Equal
+          value: enabled
+          effect: NoSchedule
+      containers:
+        - name: {{ .Values.backend.serviceName }}
+          image: {{ .Values.backend.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/liveness
+              port: {{ .Values.backend.port }}
+            periodSeconds: 60
+          env:
+            # Deployment config
+            - name: "GPU_SUPPORTED"
+              value: "False"
+            - name: "GPU_ENABLED"
+              value: "False"
+            # Auth config
+            - name: AUTH_ENABLED
+              value: "True"
+            - name: REQUIRED_AUTH_ROLES
+              value: {{ .Values.auth.requiredAuthRoles | quote }} # One of these Firebase roles is required to access the service
+            - name: FIREBASE_AUTH_SERVICE_ACCOUNT_CREDENTIALS_URL
+              value: {{ .Values.auth.firebaseAuthServiceAccountUrl | quote }}
+            # API specific configs
+            - name: AESTHETICS_MODEL_URL
+              value: {{ printf "http://%v:%v" .Values.aestheticsModel.serviceName .Values.aestheticsModel.port | quote }}
+            - name: EMOTION_MODEL_URL
+              value: {{ printf "http://%v:%v" .Values.emotionModel.serviceName .Values.emotionModel.port | quote }}
+            - name: SHOT_SCALE_MODEL_URL
+              value: {{ printf "http://%v:%v" .Values.shotScaleModel.serviceName .Values.shotScaleModel.port | quote }}
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "100Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          volumeMounts:
+          - name: {{ print .Values.backend.serviceName "-pv" }}
+            mountPath: /tmp/tinyDB
+            subPath: db_dir
+          - name: {{ print .Values.backend.serviceName "-pv" }}
+            mountPath: /tmp/stored_images
+            subPath: images_dir
+      volumes:
+      - name: {{ print .Values.backend.serviceName "-pv" }}
+        persistentVolumeClaim:
+          claimName: {{ printf "%v-pvc" .Release.Name }}
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.backend.serviceName }}
+spec:
+  selector:
+    app: {{ .Values.backend.serviceName }}
+  ports:
+    - port: {{ .Values.backend.port }}
+      protocol: TCP
+      targetPort: {{ .Values.backend.port }}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%v-pvc" .Release.Name }}
+  annotations:
+    helm.sh/resource-policy: {{ .Values.deployment.volumeResourcePolicy }}
+spec:
+  accessModes:
+    - ReadWriteOnce  # ReadWriteMany not supported
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 20Gi

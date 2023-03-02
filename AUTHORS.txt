@@ -1,0 +1,6 @@
+- Daniel Vera Nieto <daniel.veranieto@inf.ethz.ch>: App implementation and model development.
+- Thomas Steinmann: <thomaste@ethz.ch> Infrastructure and app implementation.
+- Clara Fernandez Labrador: Model development and supervision
+- Marc Willhaus: Front-end implementation.
+- Severin Klingler: Supervision
+- Fabio Zünd <fzuend@ethz.ch>: Supervision

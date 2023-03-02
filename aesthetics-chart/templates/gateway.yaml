@@ -1,0 +1,32 @@
+# *  SPDX-License-Identifier: Apache-2.0
+# *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%v-route" .Values.frontend.serviceName }}
+  labels:
+    gateway: {{ .Values.deployment.dashboardGatewayName }}
+spec:
+  # Host names are no longer required, as soon as path rewriting is supported
+  hostnames:
+    - {{ .Values.deployment.hostname }}
+    - {{ printf "www.%v" .Values.deployment.hostname }}
+  parentRefs:
+  - name: {{ .Values.deployment.dashboardGatewayName }}
+  rules:
+  - backendRefs:
+    - name: {{ .Values.frontend.serviceName }}
+      port: {{ .Values.frontend.port }}
+
+    ## Currently not supported -> Revisit once it is
+    # matches:
+    # - path:
+    #     type: PathPrefix
+    #     value: /example
+    # filters:
+    # - type: URLRewrite
+    #   urlRewrite:
+    #     path:
+    #       type: ReplacePathPrefix
+    #       replacePathPrefix: /

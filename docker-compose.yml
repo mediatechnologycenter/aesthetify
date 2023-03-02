@@ -1,0 +1,102 @@
+# *  SPDX-License-Identifier: Apache-2.0
+# *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+services:
+  frontend:
+    image: europe-west6-docker.pkg.dev/mtc-dev/mtc-ethz/aesthetics-frontend
+    build:
+      context: ./front-end
+      args:
+        - REACT_APP_DEVELOPMENT=false
+        - REACT_APP_THUMBNAIL_ACTIVE=true
+    ports:
+      - "80:80"
+    env_file:
+        - front-end/prod.env
+    depends_on:
+        - backend
+    restart: unless-stopped
+
+  backend:
+    container_name: aesthetics-backend-v2
+    image: europe-west6-docker.pkg.dev/mtc-dev/mtc-ethz/aesthetics-backend-v2
+    build:
+      context: ./api_backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - api_backend/.env
+    volumes:
+      - db_dir:/tmp/tinyDB
+      - images_dir:/tmp/stored_images
+    environment:
+      - AUTH_ENABLED=False # Disables authentication for backend routes
+    
+  aesthetics-model:
+    container_name: aesthetics-model-backend-v2
+    image: europe-west6-docker.pkg.dev/mtc-dev/mtc-ethz/aesthetics-model-backend-v2
+    build:
+      context: aesthetics_model
+    ports:
+      - "5001:5000"
+    env_file:
+      - aesthetics_model/.env
+    volumes:
+      - pretrained_models_dir:/tmp/pretrained_models
+    environment:
+      - AUTH_ENABLED=False # Disables authentication for backend routes
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+  emotion-model:
+    container_name: emotion-model-backend-v2
+    image: europe-west6-docker.pkg.dev/mtc-dev/mtc-ethz/emotion-model-backend-v2
+    build:
+      context: emotion_model
+    ports:
+      - "5002:5000"
+    env_file:
+      - emotion_model/.env
+    volumes:
+      - pretrained_models_dir:/tmp/pretrained_models
+    environment:
+      - AUTH_ENABLED=False # Disables authentication for backend routes
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    
+  shot-scale-model:
+    container_name: shot-scale-model-backend-v2
+    image: europe-west6-docker.pkg.dev/mtc-dev/mtc-ethz/shot-scale-model-backend-v2
+    build:
+      context: shot_scale_model
+    ports:
+      - "5003:5000"
+    env_file:
+      - shot_scale_model/.env
+    volumes:
+      - pretrained_models_dir:/tmp/pretrained_models
+    environment:
+      - AUTH_ENABLED=False # Disables authentication for backend routes
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    
+  
+volumes:
+  db_dir: { }
+  images_dir: { }
+  pretrained_models_dir: { }

@@ -1,0 +1,48 @@
+# *  SPDX-License-Identifier: Apache-2.0
+# *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+version: "3.9"
+services:
+  frontend:
+    image: ethmtc/aesthetics-fe-debug
+    env_file:
+        - front-end/debug.env
+    build:
+        context: ./front-end
+        # target: debug
+    container_name: frontend-debug
+    volumes: []
+        # This volume share enables hot-reload during development - This can lead to unintended consequences and should only be used in rare instances
+        # - ./front-end/src:/front-end/src
+  
+  backend:
+    image: aesthetics-backend-v2-debug
+    container_name: aesthetics-backend-v2-debug
+    environment:
+      - MOCK_BACKEND=False
+      - AUTH_ENABLED=True
+    command: ["gunicorn", "-c", "./api_backend/gunicorn.conf.py", "--chdir", "./api_backend", "-k", "uvicorn.workers.UvicornWorker",  "--log-level", "debug", "app:app" ]
+  
+  aesthetics-model:
+    image: aesthetics-model-backend-v2-debug
+    container_name: aesthetics-model-backend-v2-debug
+    environment:
+      - MOCK_BACKEND=False
+      - AUTH_ENABLED=True
+    command: ["gunicorn", "-c", "./aesthetics_model/gunicorn.conf.py", "--chdir", "./aesthetics_model", "-k", "uvicorn.workers.UvicornWorker",  "--log-level", "debug", "app:app" ]
+  
+  emotion-model:
+    image: emotion-model-backend-v2-debug
+    container_name: emotion-model-backend-v2-debug
+    environment:
+      - MOCK_BACKEND=False
+      - AUTH_ENABLED=True
+    command: ["gunicorn", "-c", "./emotion_model/gunicorn.conf.py", "--chdir", "./emotion_model", "-k", "uvicorn.workers.UvicornWorker",  "--log-level", "debug", "app:app" ]
+  
+  shot-scale-model:
+    image: shot-scale-model-backend-v2-debug
+    container_name: shot-scale-model-backend-v2-debug
+    environment:
+      - MOCK_BACKEND=False
+      - AUTH_ENABLED=True
+    command: ["gunicorn", "-c", "./shot_scale_model/gunicorn.conf.py", "--chdir", "./shot_scale_model", "-k", "uvicorn.workers.UvicornWorker",  "--log-level", "debug", "app:app" ]

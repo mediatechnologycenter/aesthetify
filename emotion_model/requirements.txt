@@ -1,0 +1,7 @@
+# MTC API Utils package
+git+https://github.com/mediatechnologycenter/api-utils.git
+
+Pillow~=9.3.0
+torch~=1.13.1
+torchvision~=0.14.1
+rmn~=3.1.1

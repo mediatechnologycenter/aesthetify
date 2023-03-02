@@ -1,0 +1,6 @@
+# MTC API Utils package
+git+https://github.com/mediatechnologycenter/api-utils.git
+
+tinydb~=4.7.0
+Pillow~=9.3.0
+httpx~=0.23.1

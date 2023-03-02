@@ -1,0 +1,119 @@
+# *  SPDX-License-Identifier: Apache-2.0
+# *  © 2023 ETH Zurich and other contributors, see AUTHORS.txt for details
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.shotScaleModel.serviceName }}
+  labels:
+    app: {{ .Values.shotScaleModel.serviceName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.shotScaleModel.serviceName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.shotScaleModel.serviceName }}
+    spec:
+      # affinity: # All other services have a pod affinity to this one
+      nodeSelector:
+        {{- if and .Values.deployment.gpu.supported .Values.deployment.gpu.enabled }}
+        gpu-deployment: enabled
+        {{- else }}
+        cpu-deployment: enabled
+        # The following is only used for autoprovisioning clusters
+        # Options: nvidia-tesla-p4/nvidia-tesla-k80/nvidia-tesla-p100/nvidia-tesla-v100/nvidia-tesla-a100
+        # cloud.google.com/gke-accelerator: nvidia-tesla-p4
+        {{- end }}
+      tolerations:
+        # Allow deployment on either cpu-deployment or gpu-deployment nodes, depending on GPU env var
+        {{- if and .Values.deployment.gpu.supported .Values.deployment.gpu.enabled }}
+        - key: gpu-deployment
+          operator: Equal
+          value: enabled
+          effect: NoSchedule
+        {{- else }}
+        - key: cpu-deployment
+          operator: Equal
+          value: enabled
+          effect: NoSchedule
+        {{- end }}
+      containers:
+        - name: {{ .Values.shotScaleModel.serviceName }}
+          image: {{ .Values.shotScaleModel.image }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.shotScaleModel.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/liveness
+              port: {{ .Values.shotScaleModel.port }}
+            periodSeconds: 60
+          env:
+            # Deployment config
+            - name: "GPU_SUPPORTED"
+              value: {{ .Values.deployment.gpu.supported | quote }}
+            - name: "GPU_ENABLED"
+              value: {{ .Values.deployment.gpu.enabled | quote }}
+            # Auth config
+            - name: AUTH_ENABLED
+              value: "False"
+            - name: REQUIRED_AUTH_ROLES
+              value: {{ .Values.auth.requiredAuthRoles | quote }} # One of these Firebase roles is required to access the service
+            - name: FIREBASE_AUTH_SERVICE_ACCOUNT_CREDENTIALS_URL
+              value: {{ .Values.auth.firebaseAuthServiceAccountUrl | quote }}
+          resources:
+            requests:
+              cpu: "1"
+              memory: "5Gi"
+            limits:
+              {{- if and .Values.deployment.gpu.supported .Values.deployment.gpu.enabled .Values.shotScaleModel.gpu.supported .Values.shotScaleModel.gpu.enabled}}
+              cpu: "4"
+              {{- else }}
+              cpu: "8" # 8
+              {{- end }}
+              memory: "8Gi"
+              {{- if and .Values.deployment.gpu.supported .Values.deployment.gpu.enabled .Values.shotScaleModel.gpu.supported .Values.shotScaleModel.gpu.enabled }}
+              nvidia.com/gpu: 1
+              {{- end }}
+          volumeMounts:
+          - name: {{ print .Values.shotScaleModel.serviceName "-pv" }}
+            mountPath: /tmp/pretrained_models
+            subPath: pretrained_models_dir
+      volumes:
+      - name: {{ print .Values.shotScaleModel.serviceName "-pv" }}
+        persistentVolumeClaim:
+          claimName: {{ printf "%v-pvc" .Values.shotScaleModel.serviceName }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.shotScaleModel.serviceName }}
+spec:
+  selector:
+    app: {{ .Values.shotScaleModel.serviceName }}
+  ports:
+    - port: {{ .Values.shotScaleModel.port }}
+      protocol: TCP
+      targetPort: {{ .Values.shotScaleModel.port }}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%v-pvc" .Values.shotScaleModel.serviceName }}
+  annotations:
+    helm.sh/resource-policy: {{ .Values.deployment.volumeResourcePolicy }}
+spec:
+  accessModes:
+    - ReadWriteOnce  # ReadWriteMany not supported
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 400Mi
